@@ -73,7 +73,7 @@ label1:
 
 **Convert With GCC Inline** 
 
-> $ python intel2gas.py -m < demo.asm  
+> $ python intel2gas.py -i -m < demo.asm  
 
 ```asm
 __asm__ __volatile__ (
