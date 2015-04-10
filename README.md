@@ -4,16 +4,16 @@ Convert MASM style inline assembly to AT&T style inline assembly, and output in 
 Install
 =======
 
-> git clone https://github.com/skywind3000/Intel2GAS.git Intel2GAS
+> $ git clone https://github.com/skywind3000/Intel2GAS.git Intel2GAS
 
 Convert Assembly in GUI
 =======================
 
 Run intel2gui.pyw directly, to get into GUI front-end. and convert masm source into AT&T Style (with or without inline mode).
 
-> cd Intel2GAS
-
-> python intel2gui.pyw
+> $ cd Intel2GAS
+> 
+> $ python intel2gui.pyw
 
 **Convert Without GCC Inline mode** 
 
@@ -31,9 +31,9 @@ Run intel2gui.pyw directly, to get into GUI front-end. and convert masm source i
 Convert Assembly in Console
 ===========================
 
-> cd Intel2GAS
-
-> cat demo.asm
+> $ cd Intel2GAS
+> 
+> $ cat demo.asm
 
 ```asm
 	cld
@@ -53,7 +53,7 @@ label1:
 
 **Convert Without GCC Inline**
 
-> python intel2gas.py -m < demo.asm  
+> $ python intel2gas.py -m < demo.asm  
 
 ```asm
     cld
@@ -73,7 +73,7 @@ label1:
 
 **Convert With GCC Inline** 
 
-> python intel2gas.py -m < demo.asm  
+> $ python intel2gas.py -m < demo.asm  
 
 ```asm
 __asm__ __volatile__ (
