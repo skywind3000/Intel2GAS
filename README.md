@@ -12,15 +12,19 @@ Convert Assembly in GUI
 Run intel2gui.pyw directly, to get into GUI front-end. and convert masm source into AT&T Style (with or without inline mode).
 
 > cd Intel2GAS
+
 > python intel2gui.pyw
 
 **Convert Without GCC Inline mode** 
+
 ![](https://raw.githubusercontent.com/skywind3000/Intel2GAS/master/images/intel2gas_0.png)
 
 **Convert With GCC Inline mode**
+
 ![](https://raw.githubusercontent.com/skywind3000/Intel2GAS/master/images/intel2gas_1.png)
 
 **MMX Alpha Blend Demo**
+
 ![](https://raw.githubusercontent.com/skywind3000/Intel2GAS/master/images/intel2gas_2.png)
 
 
@@ -28,9 +32,10 @@ Convert Assembly in Console
 ===========================
 
 > cd Intel2GAS
+
 > cat demo.asm
 
-```
+```asm
 	cld
 	mov esi, src
 	mov edi, dst
@@ -50,7 +55,7 @@ label1:
 
 > python intel2gas.py -m < demo.asm  
 
-```
+```asm
     cld
     mov %0, %esi
     mov %1, %edi
@@ -70,7 +75,7 @@ label1:
 
 > python intel2gas.py -m < demo.asm  
 
-```C
+```asm
 __asm__ __volatile__ (
   "    cld\n"
   "    mov %0, %%esi\n"
