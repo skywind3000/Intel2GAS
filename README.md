@@ -2,12 +2,12 @@
 Convert MASM style inline assembly to AT&T style inline assembly, and output in pure AT&T assembly code or gcc inline assembly code. support x86, x86_64 instructions. It is a brand new replacement to old [intel2gas](http://freecode.com/projects/intel2gas "Old Intel2GAS") project.
 
 Install
-=======
+-------
 
 > $ git clone https://github.com/skywind3000/Intel2GAS.git Intel2GAS
 
 Convert Assembly in GUI
-=======================
+-----------------------
 
 Run intel2gui.pyw directly, to get into GUI front-end. and convert masm source into AT&T Style (with or without inline mode).
 
@@ -29,7 +29,7 @@ Run intel2gui.pyw directly, to get into GUI front-end. and convert masm source i
 
 
 Convert Assembly in Console
-===========================
+---------------------------
 
 > $ cd Intel2GAS
 > 
