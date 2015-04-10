@@ -505,23 +505,23 @@ prefix = [ 'lock', 'rep', 'repne', 'repnz', 'repe', 'repz' ]
 #----------------------------------------------------------------------
 # coperand
 #----------------------------------------------------------------------
-O_REG	= 0			# ¼Ä´æÆ÷
-O_IMM	= 1			# Á¢¼´Êý×Ö
-O_MEM	= 2			# ÄÚ´æ
-O_LABEL	= 3			# ±êÊ¶£¬¿ÉÄÜÊÇ±äÁ¿Ò²¿ÉÄÜÊÇÌø×ªµØÖ·
+O_REG	= 0			# å¯„å­˜å™¨
+O_IMM	= 1			# ç«‹å³æ•°å­—
+O_MEM	= 2			# å†…å­˜
+O_LABEL	= 3			# æ ‡è¯†ï¼Œå¯èƒ½æ˜¯å˜é‡ä¹Ÿå¯èƒ½æ˜¯è·³è½¬åœ°å€
 
 class coperand (object):
 	def __init__ (self, tokens = None):
 		self.mode = -1
-		self.reg = ''						# Ä¬ÈÏ¼Ä´æÆ÷
-		self.base = ''						# Ñ°Ö·£º»ùÖ·¼Ä´æÆ÷
-		self.index = ''						# Ñ°Ö·£ºË÷Òý¼Ä´æÆ÷
-		self.scale = 0						# Ñ°Ö·£º·Å´ó±¶Êý
-		self.offset = 0						# Ñ°Ö·£ºÆ«ÒÆÁ¿
-		self.segment = ''					# ¶ÎµØÖ·
-		self.immediate = 0					# Á¢¼´Êý×Ö
-		self.label = ''						# ±äÁ¿»òÕßÌø×ªµØÖ·
-		self.size = 0						# Êý¾Ý´óÐ¡
+		self.reg = ''						# é»˜è®¤å¯„å­˜å™¨
+		self.base = ''						# å¯»å€ï¼šåŸºå€å¯„å­˜å™¨
+		self.index = ''						# å¯»å€ï¼šç´¢å¼•å¯„å­˜å™¨
+		self.scale = 0						# å¯»å€ï¼šæ”¾å¤§å€æ•°
+		self.offset = 0						# å¯»å€ï¼šåç§»é‡
+		self.segment = ''					# æ®µåœ°å€
+		self.immediate = 0					# ç«‹å³æ•°å­—
+		self.label = ''						# å˜é‡æˆ–è€…è·³è½¬åœ°å€
+		self.size = 0						# æ•°æ®å¤§å°
 		if tokens != None: 
 			self.parse(tokens)
 		self.name = 'operand'
@@ -560,19 +560,19 @@ class coperand (object):
 			raise SyntaxError('expected operand token')
 		head = tokens[0]
 		tail = tokens[-1]
-		if head.mode == CTOKEN_INT:			# Èç¹ûÊÇÁ¢¼´Êý
+		if head.mode == CTOKEN_INT:			# å¦‚æžœæ˜¯ç«‹å³æ•°
 			self.mode = O_IMM
 			self.immediate = head.value
-		elif head.mode == CTOKEN_IDENT:		# ¼Ä´æÆ÷»ò±êÊ¶
-			if isreg(head.value):			# Èç¹ûÊÇ¼Ä´æÆ÷
+		elif head.mode == CTOKEN_IDENT:		# å¯„å­˜å™¨æˆ–æ ‡è¯†
+			if isreg(head.value):			# å¦‚æžœæ˜¯å¯„å­˜å™¨
 				self.mode = O_REG
 				self.reg = head.value
 				self.size = regsize(self.reg)
 			else:
-				self.mode = O_LABEL			# Èç¹ûÊÇ±êÊ¶
+				self.mode = O_LABEL			# å¦‚æžœæ˜¯æ ‡è¯†
 				self.label = head.value
-		elif head.mode == CTOKEN_OPERATOR:	# Èç¹ûÊÇ·ûºÅ
-			if head.value == '[':			# Èç¹ûÊÇÄÚ´æ
+		elif head.mode == CTOKEN_OPERATOR:	# å¦‚æžœæ˜¯ç¬¦å·
+			if head.value == '[':			# å¦‚æžœæ˜¯å†…å­˜
 				self.mode = O_MEM
 				if tail.mode != CTOKEN_OPERATOR or tail.value != ']':
 					raise SyntaxError('bad memory operand')
@@ -597,7 +597,7 @@ class coperand (object):
 			if token.mode == CTOKEN_OPERATOR and token.value == ':':
 				pos = i
 				break
-		if pos >= 0 and pos < len(tokens):		# Èç¹û¸²¸Ç¶ÎµØÖ·
+		if pos >= 0 and pos < len(tokens):		# å¦‚æžœè¦†ç›–æ®µåœ°å€
 			if pos == 0 or pos == len(tokens) - 1:
 				raise SyntaxError('memory operand segment error')
 			t1 = tokens[pos - 1]
@@ -614,7 +614,7 @@ class coperand (object):
 			if token.mode == CTOKEN_OPERATOR and token.value == '*':
 				pos = i
 				break
-		if pos >= 0 and pos < len(tokens):		# Èç¹ûÓÐ³ËºÅ
+		if pos >= 0 and pos < len(tokens):		# å¦‚æžœæœ‰ä¹˜å·
 			if pos == 0 or pos == len(tokens) - 1:
 				raise SyntaxError('memory operand error (bad scale)')
 			t1 = tokens[pos - 1]
@@ -1066,13 +1066,13 @@ class csynthesis (object):
 			raise KeyError('line number out of range')
 		encoding = self.encoding[lineno]
 		source = self.get_label(lineno, clabel)
-		# ÄÚÈÝËõ½ø
+		# å†…å®¹ç¼©è¿›
 		indent = self.indent1
 		if clabel: 
 			indent = len(self.labels) + 2
 		indent = ((indent + 1) / 2) * 2
 		source = source.ljust(indent)
-		# Ã»ÓÐÖ¸Áî
+		# æ²¡æœ‰æŒ‡ä»¤
 		if encoding.empty:
 			return source
 		instruction = self.get_instruction(lineno)
