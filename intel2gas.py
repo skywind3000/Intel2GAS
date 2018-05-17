@@ -10,23 +10,22 @@
 #======================================================================
 import sys, time
 import os
-import cStringIO
+import io
 
 #----------------------------------------------------------------------
 # TOKEN TYPE
 #----------------------------------------------------------------------
-CTOKEN_ENDL = 0
-CTOKEN_ENDF = 1
-CTOKEN_IDENT = 2
-CTOKEN_KEYWORD = 3
-CTOKEN_STR = 4
-CTOKEN_OPERATOR = 5
-CTOKEN_INT = 6
-CTOKEN_FLOAT = 7
-CTOKEN_ERROR = 8
-
-CTOKEN_NAME = { 0:'endl', 1:'endf', 2:'ident', 3:'keyword', 4:'str',
-	5:'op', 6:'int', 7:'float', 8:'error' }
+from enum import IntEnum
+class CTOKEN(IntEnum):
+	ENDL = 0
+	ENDF = 1
+	IDENT = 2
+	KEYWORD = 3
+	STR = 4
+	OPERATOR = 5
+	INT = 6
+	FLOAT = 7
+	ERROR = 8
 
 #----------------------------------------------------------------------
 # CTOKEN Declare
@@ -45,25 +44,25 @@ class ctoken (object):
 		token.source = self.source
 		return token
 	def is_endl (self):
-		return self.mode == CTOKEN_ENDL
+		return self.mode == CTOKEN.ENDL
 	def is_endf (self):
-		return self.mode == CTOKEN_ENDF
+		return self.mode == CTOKEN.ENDF
 	def is_ident (self):
-		return self.mode == CTOKEN_IDENT
+		return self.mode == CTOKEN.IDENT
 	def is_keyword (self):
-		return self.mode == CTOKEN_KEYWORD
+		return self.mode == CTOKEN.KEYWORD
 	def is_str (self):
-		return self.mode == CTOKEN_STR
+		return self.mode == CTOKEN.STR
 	def is_operator (self):
-		return self.mode == CTOKEN_OPERATOR
+		return self.mode == CTOKEN.OPERATOR
 	def is_int (self):
-		return self.mode == CTOKEN_INT
+		return self.mode == CTOKEN.INT
 	def is_float (self):
-		return self.mode == CTOKEN_FLOAT
+		return self.mode == CTOKEN.FLOAT
 	def is_error (self):
-		return self.mode == CTOKEN_ERROR
+		return self.mode == CTOKEN.ERROR
 	def __repr__ (self):
-		x = '(%s, %s)'%(CTOKEN_NAME[self.mode], repr(self.value))
+		x = '(%s, %s)'%(self.mode.name, repr(self.value))
 		return x
 
 
@@ -74,7 +73,7 @@ class ctoken (object):
 class ctokenize (object):
 	def __init__ (self, fp = ''):
 		if type(fp) == type(''):
-			fp = cStringIO.StringIO(fp)
+			fp = io.StringIO(fp)
 		self.fp = fp
 		self.reset()
 	def reset (self):
@@ -125,7 +124,7 @@ class ctokenize (object):
 		return skip
 	def read (self):
 		return None
-	def next (self):
+	def __next__ (self):
 		if not self.init:
 			self.init = 1
 			self.getch()
@@ -136,14 +135,14 @@ class ctokenize (object):
 	def gettokens (self):
 		result = []
 		while 1:
-			token = self.next()
+			token = next(self)
 			if token == None:
 				if self.code:
 					text = '%d: %s'%(self.row, self.error)
 					raise SyntaxError(text)
 				break
 			result.append(token)
-			if token.mode == CTOKEN_ENDF:
+			if token.mode == CTOKEN.ENDF:
 				break
 		return result
 	def __iter__ (self):
@@ -214,7 +213,7 @@ class cscanner (ctokenize):
 					text += '\"\"'
 				else:
 					done = 1
-					token = ctoken(CTOKEN_STR, text, text)
+					token = ctoken(CTOKEN.STR, text, text)
 					self.text = text
 					break
 			elif (mode == 1) and (ch == '\''):
@@ -223,7 +222,7 @@ class cscanner (ctokenize):
 					text += '\'\''
 				else:
 					done = 1
-					token = ctoken(CTOKEN_STR, text, text)
+					token = ctoken(CTOKEN.STR, text, text)
 					self.text = text
 					break
 			elif ch == '\n':
@@ -273,59 +272,59 @@ class cscanner (ctokenize):
 		text = text[:pos]
 
 		if text[:2] in ('0x', '0X'):
-			try: value = long(text, 16)
+			try: value = int(text, 16)
 			except: 
 				self.error = 'bad hex number ' + text
 				self.code = 2
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
-			token = ctoken(CTOKEN_INT, value, text)
+			token = ctoken(CTOKEN.INT, value, text)
 		elif ec1 == 'h' and ec2 == 0:
-			try: value = long(text, 16)
+			try: value = int(text, 16)
 			except:
 				self.error = 'bad hex number ' + text
 				self.code = 3
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
-			token = ctoken(CTOKEN_INT, value, text)
+			token = ctoken(CTOKEN.INT, value, text)
 		elif ec1 == 'b' and ec2 == 0:
-			try: value = long(text, 2)
+			try: value = int(text, 2)
 			except:
 				self.error = 'bad binary number ' + text
 				self.code = 4
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
-			token = ctoken(CTOKEN_INT, value, text)
+			token = ctoken(CTOKEN.INT, value, text)
 		elif ec1 == 'q' and ec2 == 0:
-			try: value = long(text, 8)
+			try: value = int(text, 8)
 			except:
 				self.error = 'bad octal number ' + text
 				self.code = 5
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
-			token = ctoken(CTOKEN_INT, value, text)
+			token = ctoken(CTOKEN.INT, value, text)
 		else:
 			decimal = (not '.' in text) and 1 or 0
 			if decimal:
-				try: value = long(text, 10)
+				try: value = int(text, 10)
 				except:
 					self.error = 'bad decimal number ' + text
 					self.code = 6
 					return None
-				if value >= -0x80000000L and value <= 0x7fffffffL:
+				if value >= -0x80000000 and value <= 0x7fffffff:
 					value = int(value)
-				token = ctoken(CTOKEN_INT, value, text)
+				token = ctoken(CTOKEN.INT, value, text)
 			else:
 				try: value = float(text)
 				except:
 					self.error = 'bad float number ' + text
 					self.code = 7
 					return None
-				token = ctoken(CTOKEN_FLOAT, value, text)
+				token = ctoken(CTOKEN.FLOAT, value, text)
 	
 		token.row = self.row
 		token.col = self.col
@@ -337,7 +336,7 @@ class cscanner (ctokenize):
 
 		if self.ch == '\n':
 			lineno = self.row - 1
-			token = ctoken(CTOKEN_ENDL)
+			token = ctoken(CTOKEN.ENDL)
 			token.row = lineno
 			self.memo[lineno] = memo
 			memo = ''
@@ -348,7 +347,7 @@ class cscanner (ctokenize):
 			self.eof += 1
 			if self.eof > 1:
 				return None
-			token = ctoken(CTOKEN_ENDF, 0)
+			token = ctoken(CTOKEN.ENDF, 0)
 			token.row = self.row
 			if memo:
 				self.memo[self.row] = memo
@@ -376,17 +375,17 @@ class cscanner (ctokenize):
 				text += self.ch
 				self.getch()
 			if self.keywords:
-				for i in xrange(len(self.keywords)):
+				for i in range(len(self.keywords)):
 					same = 0
 					if self.casesensitive:
 						same = (text == self.keywords[i])
 					else:
 						same = (text.lower() == self.keywords[i].lower())
 					if same:
-						token = ctoken(CTOKEN_KEYWORD, i, text)
+						token = ctoken(CTOKEN.KEYWORD, i, text)
 						token.row, token.col = row, col
 						return token
-			token = ctoken(CTOKEN_IDENT, text, text)
+			token = ctoken(CTOKEN.IDENT, text, text)
 			token.row, token.col = row, col
 			return token
 		
@@ -402,7 +401,7 @@ class cscanner (ctokenize):
 			return token
 		
 		# this is an operator
-		token = ctoken(CTOKEN_OPERATOR, self.ch, self.ch)
+		token = ctoken(CTOKEN.OPERATOR, self.ch, self.ch)
 		token.row, token.col = self.row, self.col
 		self.getch()
 
@@ -472,7 +471,11 @@ for reg in REGNAME:
 	REGSIZE[reg] = reginfo(reg)
 
 regsize = lambda reg: REGSIZE[reg.upper()]
-isreg = lambda reg: (reg.upper() in REGSIZE)
+
+isreg = lambda reg: ()
+def isreg(reg):
+	print("reg:", reg)
+	return reg.upper() in REGSIZE
 
 
 instreplace = {
@@ -505,10 +508,11 @@ prefix = [ 'lock', 'rep', 'repne', 'repnz', 'repe', 'repz' ]
 #----------------------------------------------------------------------
 # coperand
 #----------------------------------------------------------------------
-O_REG	= 0			# 寄存器
-O_IMM	= 1			# 立即数字
-O_MEM	= 2			# 内存
-O_LABEL	= 3			# 标识，可能是变量也可能是跳转地址
+class OPERAND(IntEnum):
+	REG	= 0			# 寄存器
+	IMM	= 1			# 立即数字
+	MEM	= 2			# 内存
+	LABEL	= 3			# 标识，可能是变量也可能是跳转地址
 
 class coperand (object):
 	def __init__ (self, tokens = None):
@@ -540,15 +544,15 @@ class coperand (object):
 			tokens = tokenize(tokens)
 		tokens = [ n for n in tokens ]
 		while len(tokens) > 0:
-			if not tokens[-1].mode in (CTOKEN_ENDF, CTOKEN_ENDL):
+			if not tokens[-1].mode in (CTOKEN.ENDF, CTOKEN.ENDL):
 				break
 			tokens.pop()
 		self.reset()
 		if len(tokens) >= 2:
 			t1 = tokens[0]
 			t2 = tokens[1]
-			if t2.mode == CTOKEN_IDENT and t2.value.lower() == 'ptr':
-				if t1.mode == CTOKEN_IDENT:
+			if t2.mode == CTOKEN.IDENT and t2.value.lower() == 'ptr':
+				if t1.mode == CTOKEN.IDENT:
 					size = t1.value.lower()
 					if size == 'byte': self.size = 1
 					elif size == 'word': self.size = 2
@@ -560,21 +564,21 @@ class coperand (object):
 			raise SyntaxError('expected operand token')
 		head = tokens[0]
 		tail = tokens[-1]
-		if head.mode == CTOKEN_INT:			# 如果是立即数
-			self.mode = O_IMM
+		if head.mode == CTOKEN.INT:			# 如果是立即数
+			self.mode = OPERAND.IMM
 			self.immediate = head.value
-		elif head.mode == CTOKEN_IDENT:		# 寄存器或标识
+		elif head.mode == CTOKEN.IDENT:		# 寄存器或标识
 			if isreg(head.value):			# 如果是寄存器
-				self.mode = O_REG
+				self.mode = OPERAND.REG
 				self.reg = head.value
 				self.size = regsize(self.reg)
 			else:
-				self.mode = O_LABEL			# 如果是标识
+				self.mode = OPERAND.LABEL			# 如果是标识
 				self.label = head.value
-		elif head.mode == CTOKEN_OPERATOR:	# 如果是符号
+		elif head.mode == CTOKEN.OPERATOR:	# 如果是符号
 			if head.value == '[':			# 如果是内存
-				self.mode = O_MEM
-				if tail.mode != CTOKEN_OPERATOR or tail.value != ']':
+				self.mode = OPERAND.MEM
+				if tail.mode != CTOKEN.OPERATOR or tail.value != ']':
 					raise SyntaxError('bad memory operand')
 				self.__parse_memory(tokens)
 			else:
@@ -592,9 +596,9 @@ class coperand (object):
 		self.base = ''
 		segments = [ 'cs', 'ss', 'ds', 'es', 'fs', 'gs' ]
 		pos = -1
-		for i in xrange(len(tokens)):
+		for i in range(len(tokens)):
 			token = tokens[i]
-			if token.mode == CTOKEN_OPERATOR and token.value == ':':
+			if token.mode == CTOKEN.OPERATOR and token.value == ':':
 				pos = i
 				break
 		if pos >= 0 and pos < len(tokens):		# 如果覆盖段地址
@@ -602,16 +606,16 @@ class coperand (object):
 				raise SyntaxError('memory operand segment error')
 			t1 = tokens[pos - 1]
 			tokens = tokens[:pos - 1] + tokens[pos + 1:]
-			if t1.mode != CTOKEN_IDENT:
+			if t1.mode != CTOKEN.IDENT:
 				raise SyntaxError('memory operand segment bad')
 			seg = t1.value.lower()
 			if not seg in segments:
 				raise SyntaxError('memory operand segment unknow')
 			self.segment = seg
 		pos = -1
-		for i in xrange(len(tokens)):
+		for i in range(len(tokens)):
 			token = tokens[i]
-			if token.mode == CTOKEN_OPERATOR and token.value == '*':
+			if token.mode == CTOKEN.OPERATOR and token.value == '*':
 				pos = i
 				break
 		if pos >= 0 and pos < len(tokens):		# 如果有乘号
@@ -620,9 +624,9 @@ class coperand (object):
 			t1 = tokens[pos - 1]
 			t2 = tokens[pos + 1]
 			tokens = tokens[:pos - 1] + tokens[pos + 2:]
-			if t1.mode == CTOKEN_IDENT and t2.mode == CTOKEN_INT:
+			if t1.mode == CTOKEN.IDENT and t2.mode == CTOKEN.INT:
 				pass
-			elif t1.mode == CTOKEN_INT and t2.mode == CTOKEN_IDENT:
+			elif t1.mode == CTOKEN.INT and t2.mode == CTOKEN.IDENT:
 				t1, t2 = t2, t1
 			else:
 				raise SyntaxError('memory operand error (scale error)')
@@ -635,30 +639,31 @@ class coperand (object):
 		#for token in tokens: print token,
 		#print ''
 		for token in tokens:
-			if token.mode == CTOKEN_IDENT and isreg(token.value):
+			print("token mode", token.mode)
+			if token.mode == CTOKEN.IDENT and isreg(token.value):
 				if self.base == '':
 					self.base = token.value
 				elif self.index == '':
 					self.index = token.value
 				else:
-					print token
+					print(token)
 					raise SyntaxError('memory operand error (too many regs)')
-			elif token.mode == CTOKEN_INT:
+			elif token.mode == CTOKEN.INT:
 				if self.offset == 0:
 					self.offset = token.value
 				else:
 					raise SyntaxError('memory operand error (too many offs)')
-			elif token.mode == CTOKEN_OPERATOR and token.value == '+':
+			elif token.mode == CTOKEN.OPERATOR and token.value == '+':
 				pass
 			else:
 				raise SyntaxError('operand token error ' + repr(token))
 		return 0
 	def info (self):
-		if self.mode == O_REG:
+		if self.mode == OPERAND.REG:
 			return 'reg:%s'%self.reg
-		elif self.mode == O_IMM:
+		elif self.mode == OPERAND.IMM:
 			return 'imm:%d'%self.immediate
-		elif self.mode == O_LABEL:
+		elif self.mode == OPERAND.LABEL:
 			return 'label:%s'%self.label
 		data = []
 		if self.base:
@@ -679,11 +684,11 @@ class coperand (object):
 	def translate (self, inline = 0):
 		prefix = r'%'
 		if inline: prefix = r'%%'
-		if self.mode == O_REG:
+		if self.mode == OPERAND.REG:
 			return prefix + self.reg
-		if self.mode == O_IMM:
+		if self.mode == OPERAND.IMM:
 			return '$' + hex(self.immediate)
-		if self.mode == O_LABEL:
+		if self.mode == OPERAND.LABEL:
 			return self.label
 		text = ''
 		base = self.base and (prefix + self.base) or ''
@@ -727,7 +732,7 @@ class cencoding (object):
 			tokens = tokenize(tokens)
 		tokens = [ n for n in tokens ]
 		while len(tokens) > 0:
-			if not tokens[-1].mode in (CTOKEN_ENDF, CTOKEN_ENDL):
+			if not tokens[-1].mode in (CTOKEN.ENDF, CTOKEN.ENDL):
 				break
 			tokens.pop()
 		if len(tokens) == 0:
@@ -747,8 +752,8 @@ class cencoding (object):
 		if len(self.tokens) < 2:
 			return 0
 		t1, t2 = self.tokens[:2]
-		if t2.mode == CTOKEN_OPERATOR and t2.value == ':':
-			if t1.mode != CTOKEN_IDENT:
+		if t2.mode == CTOKEN.OPERATOR and t2.value == ':':
+			if t1.mode != CTOKEN.IDENT:
 				raise SyntaxError('error label type')
 			self.label = t1.value
 			self.tokens = self.tokens[2:]
@@ -759,7 +764,7 @@ class cencoding (object):
 		segments = [ 'cs', 'ss', 'ds', 'es', 'fs', 'gs' ]
 		while len(self.tokens) >= 1:
 			t1 = self.tokens[0]
-			if t1.mode != CTOKEN_IDENT:
+			if t1.mode != CTOKEN.IDENT:
 				break
 			text = t1.value.lower()
 			if (not text in prefix) and (not text in segments):
@@ -774,7 +779,7 @@ class cencoding (object):
 			return 0
 		t1 = self.tokens[0]
 		self.tokens = self.tokens[1:]
-		if t1.mode != CTOKEN_IDENT:
+		if t1.mode != CTOKEN.IDENT:
 			raise SyntaxError('instruction type error')
 		self.instruction = t1.value
 		return 0
@@ -784,8 +789,8 @@ class cencoding (object):
 		while len(self.tokens) > 0:
 			size = len(self.tokens)
 			pos = size
-			for i in xrange(size):
-				if self.tokens[i].mode == CTOKEN_OPERATOR:
+			for i in range(size):
+				if self.tokens[i].mode == CTOKEN.OPERATOR:
 					if self.tokens[i].value == ',':
 						pos = i
 						break
@@ -817,19 +822,19 @@ class cencoding (object):
 		postfix = False
 		if len(self.operands) == 1:
 			o = self.operands[0]
-			if o.mode == O_MEM:
+			if o.mode == OPERAND.MEM:
 				postfix = True
-			elif o.mode == O_LABEL:
+			elif o.mode == OPERAND.LABEL:
 				postfix = True
 		elif len(self.operands) == 2:
 			o1, o2 = self.operands[:2]
-			if o1.mode == O_IMM and o2.mode == O_MEM:
+			if o1.mode == OPERAND.IMM and o2.mode == OPERAND.MEM:
 				postfix = True
-			if o1.mode == O_MEM and o2.mode == O_IMM:
+			if o1.mode == OPERAND.MEM and o2.mode == OPERAND.IMM:
 				postfix = True
-			if o1.mode == O_IMM and o2.mode == O_LABEL:
+			if o1.mode == OPERAND.IMM and o2.mode == OPERAND.LABEL:
 				postfix = True
-			if o1.mode == O_LABEL and o2.mode == O_IMM:
+			if o1.mode == OPERAND.LABEL and o2.mode == OPERAND.IMM:
 				postfix = True
 		if postfix:
 			if self.size == 1:
@@ -850,7 +855,7 @@ class cencoding (object):
 			size = 4
 			if len(self.operands) > 0:
 				op = self.operands[0]
-				if op.mode == O_IMM:
+				if op.mode == OPERAND.IMM:
 					size = op.immediate
 			if id == 0:
 				return '%d, 0x90'%size
@@ -868,7 +873,7 @@ class cencoding (object):
 			text += '%s '%self.prefix
 		text += self.translate_instruction()
 		text += ' '
-		text += self.translate_operands()
+		#text += self.translate_operands()
 		return text
 
 
@@ -914,25 +919,25 @@ class csynthesis (object):
 		scanner = cscanner(source)
 		tokens = []
 		while 1:
-			token = scanner.next()
+			token = next(scanner)
 			if token == None:
 				text = '%d: %s'%(scanner.row, scanner.error)
 				self.error = text
 				return -1
 			tokens.append(token)
-			if token.mode == CTOKEN_ENDF:
+			if token.mode == CTOKEN.ENDF:
 				break
 		self.tokens = [ n for n in tokens ]
 		while len(tokens) > 0:
 			size = len(tokens)
 			pos = size - 1
-			for i in xrange(size):
-				if tokens[i].mode == CTOKEN_ENDL:
+			for i in range(size):
+				if tokens[i].mode == CTOKEN.ENDL:
 					pos = i
 					break
 			self.lines.append(tokens[:pos + 1])
 			tokens = tokens[pos + 1:]
-		for i in xrange(len(self.lines)):
+		for i in range(len(self.lines)):
 			lineno = i + 1
 			if lineno in scanner.memo:
 				self.memos[i] = scanner.memo[lineno].strip('\r\n\t ')
@@ -946,7 +951,7 @@ class csynthesis (object):
 		for tokens in self.lines:
 			try: 
 				encoding = cencoding(tokens)
-			except SyntaxError, e:
+			except SyntaxError as e:
 				text = '%d: %s'%(lineno, e)
 				self.error = text
 				return -1
@@ -960,24 +965,24 @@ class csynthesis (object):
 		self.size = len(self.lines)
 		index = 0
 		amd64 = ('rax', 'rbx', 'rcx', 'rdx', 'rdi', 'rsi', 'rbp', 'rsp')
-		for i in xrange(self.size):
+		for i in range(self.size):
 			encoding = self.encoding[i]
 			if encoding.label:
 				index += 1
 				self.labels[encoding.label] = (i, index)
 		varlist = []
-		for i in xrange(self.size):
+		for i in range(self.size):
 			encoding = self.encoding[i]
-			for j in xrange(len(encoding.operands)):
+			for j in range(len(encoding.operands)):
 				operand = encoding.operands[j]
-				if operand.mode == O_LABEL:
+				if operand.mode == OPERAND.LABEL:
 					if not operand.label in self.labels:
 						varlist.append((operand.label, i, j))
 					else:
 						desc = self.references.get(operand.label, [])
 						desc.append((i, j))
 						self.references[operand.label] = desc
-				elif operand.mode == O_REG:
+				elif operand.mode == OPERAND.REG:
 					reg = operand.reg.lower()
 					self.registers[reg] = 1
 					if reg in amd64:
@@ -988,7 +993,7 @@ class csynthesis (object):
 		for var, line, pos in varlist:
 			if pos != 0: vartable.append((var, line, pos))
 		names = {}
-		for i in xrange(len(vartable)):
+		for i in range(len(vartable)):
 			var, line, pos = vartable[i]
 			desc = self.vars.get(var, [])
 			if len(desc) == 0:
@@ -1004,7 +1009,7 @@ class csynthesis (object):
 			self.vars[var] = desc
 		indent1 = 0
 		indent2 = 0
-		for i in xrange(self.size):
+		for i in range(self.size):
 			encoding = self.encoding[i]
 			encoding.inst = encoding.translate_instruction()
 			if encoding.label and (not encoding.empty):
@@ -1046,7 +1051,7 @@ class csynthesis (object):
 		if id < 0 or id >= len(encoding.operands):
 			raise KeyError('operand id out of range')
 		operand = encoding.operands[id]
-		if operand.mode in (O_IMM, O_REG, O_MEM):
+		if operand.mode in (OPERAND.IMM, OPERAND.REG, OPERAND.MEM):
 			return operand.translate(inline)
 		label = operand.label
 		if label in self.labels:	# this is a jmp label
@@ -1070,33 +1075,33 @@ class csynthesis (object):
 		indent = self.indent1
 		if clabel: 
 			indent = len(self.labels) + 2
-		indent = ((indent + 1) / 2) * 2
+		indent = ((indent + 1) // 2) * 2
 		source = source.ljust(indent)
 		# 没有指令
 		if encoding.empty:
 			return source
 		instruction = self.get_instruction(lineno)
 		if align:
-			indent = ((self.indent2 + 3) / 4 ) * 4
+			indent = ((self.indent2 + 3) // 4 ) * 4
 			instruction = instruction.ljust(indent)
 		source += instruction + ' '
 		if encoding.instruction.lower() == 'align':
 			size = 4
 			if len(encoding.operands) > 0:
 				operand = encoding.operands[0]
-				if operand.mode == O_IMM:
+				if operand.mode == OPERAND.IMM:
 					size = operand.immediate
 			source += '%d, 0x90'%size
 		elif encoding.inst.lower() in ('.byte', '.int', '.short'):
 			operands = []
-			for i in xrange(len(encoding.operands)):
+			for i in range(len(encoding.operands)):
 				op = encoding.operands[i]
 				text = hex(op.immediate)
 				operands.append(text)
 			source += ', '.join(operands)
 		else:
 			operands = []
-			for i in xrange(len(encoding.operands)):
+			for i in range(len(encoding.operands)):
 				op = self.get_operand(lineno, i, clabel, inline)
 				operands.append(op)
 			operands.reverse()
@@ -1152,7 +1157,7 @@ class CIntel2GAS (object):
 		self.error = self.synthesis.error
 		if retval != 0:
 			return retval
-		for i in xrange(self.synthesis.size):
+		for i in range(self.synthesis.size):
 			text = self.synthesis.synthesis(i, clabel, inline, align)
 			self.lines.append(text)
 			memo = self.synthesis.memos[i].strip('\r\n\t ')
@@ -1164,7 +1169,7 @@ class CIntel2GAS (object):
 		for text in self.lines:
 			if len(text) > self.maxsize:
 				self.maxsize = len(text)
-		self.maxsize = ((self.maxsize + 6) / 2) * 2
+		self.maxsize = ((self.maxsize + 6) // 2) * 2
 		return 0
 
 	def intel2gas (self, source):
@@ -1181,7 +1186,7 @@ class CIntel2GAS (object):
 		if inline:
 			self.output.append('__asm__ __volatile__ (')
 			prefix = '  '
-		for i in xrange(self.synthesis.size):
+		for i in range(self.synthesis.size):
 			line = self.lines[i]
 			if line.strip('\r\n\t ') == '':
 				if self.memos[i] == '' or memo == 0:
@@ -1226,7 +1231,7 @@ def main ():
 		sys.stderr.write('error: ' + intel2gas.error + '\n')
 		return -1
 	for line in intel2gas.output:
-		print line
+		print(line)
 	return 0
 
 
@@ -1235,55 +1240,55 @@ def main ():
 #----------------------------------------------------------------------
 if __name__ == '__main__':
 	def test1():
-		scanner = cscanner(open('intel2gas.asm'))
+		scanner = cscanner(open('alphablend.asm'))
 		for token in scanner:
-			print token
-		print REGSIZE
+			print(token)
+		print(REGSIZE)
 	def test2():
-		print coperand('12')
-		print coperand('loop_pixel')
-		print coperand('eax')
-		print coperand('ebx')
-		print coperand('ax')
-		print coperand('al')
-		print coperand('[eax]')
-		print coperand('[eax + ebx]')
-		print coperand('[eax + 2*ebx]')
-		print coperand('[eax + 2*ebx + 1]')
-		print coperand('[eax + ebx + 3]')
-		print coperand('[eax + 1]')
-		print coperand('[eax*2]')
-		print coperand('[eax*2 + 1]')
-		print coperand('dword ptr [eax]')
-		print coperand('word ptr [eax+ebx+3]')
-		print coperand('byte ptr [es:eax+ebx*4+3]')
-		print coperand('byte ptr abc')
+		print(coperand('12'))
+		print(coperand('loop_pixel'))
+		print(coperand('eax'))
+		print(coperand('ebx'))
+		print(coperand('ax'))
+		print(coperand('al'))
+		print(coperand('[eax]'))
+		print(coperand('[eax + ebx]'))
+		print(coperand('[eax + 2*ebx]'))
+		print(coperand('[eax + 2*ebx + 1]'))
+		print(coperand('[eax + ebx + 3]'))
+		print(coperand('[eax + 1]'))
+		print(coperand('[eax*2]'))
+		print(coperand('[eax*2 + 1]'))
+		print(coperand('dword ptr [eax]'))
+		print(coperand('word ptr [eax+ebx+3]'))
+		print(coperand('byte ptr [es:eax+ebx*4+3]'))
+		print(coperand('byte ptr abc'))
 		return 0
 	def test3():
-		synth = csynth(open('intel2gas.asm'))
-		for i in xrange(len(synth.encoding)):
-			print '%d: '%(i + 1), synth.encoding[i]
-		print synth.labels
-		print synth.references
-		print synth.vars
-		print synth.variables
+		synth = csynthesis(open('alphablend.asm'))
+		for i in range(len(synth.encoding)):
+			print('%d: '%(i + 1), synth.encoding[i])
+		print(synth.labels)
+		print(synth.references)
+		print(synth.vars)
+		print(synth.variables)
 		return 0
 	def test4():
 		synth = csynthesis()
-		if synth.parse(open('intel2gas.asm')) != 0:
-			print 'error', synth.error
+		if synth.parse(open('alphablend.asm')) != 0:
+			print('error', synth.error)
 			return 0
-		for i in xrange(len(synth.encoding)):
-			print '%3d: '%(i + 1), synth.synthesis(i, 1, 1, 1)
-		print synth.getvars(0)
-		print synth.getvars(1)
-		print synth.indent1, synth.indent2
+		for i in range(len(synth.encoding)):
+			print('%3d: '%(i + 1), synth.synthesis(i, 1, 1, 1))
+		print(synth.getvars(0))
+		print(synth.getvars(1))
+		print(synth.indent1, synth.indent2)
 	def test5():
 		intel2gas = CIntel2GAS()
-		if intel2gas.intel2gas(open('intel2gas.asm')):
+		if intel2gas.intel2gas(open('alphablend.asm')):
 			return -1
 		for line in intel2gas.output:
-			print line
+			print(line)
 		return 0
 	#test5()
 	main()
