@@ -273,7 +273,8 @@ class cscanner (ctokenize):
 		text = text[:pos]
 
 		if text[:2] in ('0x', '0X'):
-			try: value = long(text, 16)
+			try: value = int(text, 16)
+			#Debug
 			except: 
 				self.error = 'bad hex number ' + text
 				self.code = 2
@@ -282,7 +283,7 @@ class cscanner (ctokenize):
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		elif ec1 == 'h' and ec2 == 0:
-			try: value = long(text, 16)
+			try: value = int(text, 16)
 			except:
 				self.error = 'bad hex number ' + text
 				self.code = 3
@@ -291,7 +292,7 @@ class cscanner (ctokenize):
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		elif ec1 == 'b' and ec2 == 0:
-			try: value = long(text, 2)
+			try: value = int(text, 2)
 			except:
 				self.error = 'bad binary number ' + text
 				self.code = 4
@@ -300,7 +301,7 @@ class cscanner (ctokenize):
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		elif ec1 == 'q' and ec2 == 0:
-			try: value = long(text, 8)
+			try: value = int(text, 8)
 			except:
 				self.error = 'bad octal number ' + text
 				self.code = 5
@@ -311,7 +312,7 @@ class cscanner (ctokenize):
 		else:
 			decimal = (not '.' in text) and 1 or 0
 			if decimal:
-				try: value = long(text, 10)
+				try: value = int(text, 10)
 				except:
 					self.error = 'bad decimal number ' + text
 					self.code = 6
