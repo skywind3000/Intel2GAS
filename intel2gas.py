@@ -10,7 +10,7 @@
 #======================================================================
 import sys, time
 import os
-import cStringIO
+from io import StringIO
 
 #----------------------------------------------------------------------
 # TOKEN TYPE
@@ -74,7 +74,7 @@ class ctoken (object):
 class ctokenize (object):
 	def __init__ (self, fp = ''):
 		if type(fp) == type(''):
-			fp = cStringIO.StringIO(fp)
+			fp = StringIO(fp)
 		self.fp = fp
 		self.reset()
 	def reset (self):
@@ -278,7 +278,7 @@ class cscanner (ctokenize):
 				self.error = 'bad hex number ' + text
 				self.code = 2
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		elif ec1 == 'h' and ec2 == 0:
@@ -287,7 +287,7 @@ class cscanner (ctokenize):
 				self.error = 'bad hex number ' + text
 				self.code = 3
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		elif ec1 == 'b' and ec2 == 0:
@@ -296,7 +296,7 @@ class cscanner (ctokenize):
 				self.error = 'bad binary number ' + text
 				self.code = 4
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		elif ec1 == 'q' and ec2 == 0:
@@ -305,7 +305,7 @@ class cscanner (ctokenize):
 				self.error = 'bad octal number ' + text
 				self.code = 5
 				return None
-			if value >= -0x80000000L and value <= 0x7fffffffL:
+			if value >= -0x80000000 and value <= 0x7fffffff:
 				value = int(value)
 			token = ctoken(CTOKEN_INT, value, text)
 		else:
@@ -316,7 +316,7 @@ class cscanner (ctokenize):
 					self.error = 'bad decimal number ' + text
 					self.code = 6
 					return None
-				if value >= -0x80000000L and value <= 0x7fffffffL:
+				if value >= -0x80000000 and value <= 0x7fffffff:
 					value = int(value)
 				token = ctoken(CTOKEN_INT, value, text)
 			else:
@@ -376,7 +376,7 @@ class cscanner (ctokenize):
 				text += self.ch
 				self.getch()
 			if self.keywords:
-				for i in xrange(len(self.keywords)):
+				for i in range(len(self.keywords)):
 					same = 0
 					if self.casesensitive:
 						same = (text == self.keywords[i])
@@ -592,7 +592,7 @@ class coperand (object):
 		self.base = ''
 		segments = [ 'cs', 'ss', 'ds', 'es', 'fs', 'gs' ]
 		pos = -1
-		for i in xrange(len(tokens)):
+		for i in range(len(tokens)):
 			token = tokens[i]
 			if token.mode == CTOKEN_OPERATOR and token.value == ':':
 				pos = i
@@ -609,7 +609,7 @@ class coperand (object):
 				raise SyntaxError('memory operand segment unknow')
 			self.segment = seg
 		pos = -1
-		for i in xrange(len(tokens)):
+		for i in range(len(tokens)):
 			token = tokens[i]
 			if token.mode == CTOKEN_OPERATOR and token.value == '*':
 				pos = i
@@ -641,7 +641,7 @@ class coperand (object):
 				elif self.index == '':
 					self.index = token.value
 				else:
-					print token
+					print(token)
 					raise SyntaxError('memory operand error (too many regs)')
 			elif token.mode == CTOKEN_INT:
 				if self.offset == 0:
@@ -784,7 +784,7 @@ class cencoding (object):
 		while len(self.tokens) > 0:
 			size = len(self.tokens)
 			pos = size
-			for i in xrange(size):
+			for i in range(size):
 				if self.tokens[i].mode == CTOKEN_OPERATOR:
 					if self.tokens[i].value == ',':
 						pos = i
@@ -926,13 +926,13 @@ class csynthesis (object):
 		while len(tokens) > 0:
 			size = len(tokens)
 			pos = size - 1
-			for i in xrange(size):
+			for i in range(size):
 				if tokens[i].mode == CTOKEN_ENDL:
 					pos = i
 					break
 			self.lines.append(tokens[:pos + 1])
 			tokens = tokens[pos + 1:]
-		for i in xrange(len(self.lines)):
+		for i in range(len(self.lines)):
 			lineno = i + 1
 			if lineno in scanner.memo:
 				self.memos[i] = scanner.memo[lineno].strip('\r\n\t ')
@@ -946,7 +946,7 @@ class csynthesis (object):
 		for tokens in self.lines:
 			try: 
 				encoding = cencoding(tokens)
-			except SyntaxError, e:
+			except SyntaxError as e:
 				text = '%d: %s'%(lineno, e)
 				self.error = text
 				return -1
@@ -960,15 +960,15 @@ class csynthesis (object):
 		self.size = len(self.lines)
 		index = 0
 		amd64 = ('rax', 'rbx', 'rcx', 'rdx', 'rdi', 'rsi', 'rbp', 'rsp')
-		for i in xrange(self.size):
+		for i in range(self.size):
 			encoding = self.encoding[i]
 			if encoding.label:
 				index += 1
 				self.labels[encoding.label] = (i, index)
 		varlist = []
-		for i in xrange(self.size):
+		for i in range(self.size):
 			encoding = self.encoding[i]
-			for j in xrange(len(encoding.operands)):
+			for j in range(len(encoding.operands)):
 				operand = encoding.operands[j]
 				if operand.mode == O_LABEL:
 					if not operand.label in self.labels:
@@ -988,7 +988,7 @@ class csynthesis (object):
 		for var, line, pos in varlist:
 			if pos != 0: vartable.append((var, line, pos))
 		names = {}
-		for i in xrange(len(vartable)):
+		for i in range(len(vartable)):
 			var, line, pos = vartable[i]
 			desc = self.vars.get(var, [])
 			if len(desc) == 0:
@@ -1004,7 +1004,7 @@ class csynthesis (object):
 			self.vars[var] = desc
 		indent1 = 0
 		indent2 = 0
-		for i in xrange(self.size):
+		for i in range(self.size):
 			encoding = self.encoding[i]
 			encoding.inst = encoding.translate_instruction()
 			if encoding.label and (not encoding.empty):
@@ -1070,14 +1070,14 @@ class csynthesis (object):
 		indent = self.indent1
 		if clabel: 
 			indent = len(self.labels) + 2
-		indent = ((indent + 1) / 2) * 2
+		indent = int(((indent + 1) / 2) * 2)
 		source = source.ljust(indent)
 		# 没有指令
 		if encoding.empty:
 			return source
 		instruction = self.get_instruction(lineno)
 		if align:
-			indent = ((self.indent2 + 3) / 4 ) * 4
+			indent = int(((self.indent2 + 3) / 4 ) * 4)
 			instruction = instruction.ljust(indent)
 		source += instruction + ' '
 		if encoding.instruction.lower() == 'align':
@@ -1089,14 +1089,14 @@ class csynthesis (object):
 			source += '%d, 0x90'%size
 		elif encoding.inst.lower() in ('.byte', '.int', '.short'):
 			operands = []
-			for i in xrange(len(encoding.operands)):
+			for i in range(len(encoding.operands)):
 				op = encoding.operands[i]
 				text = hex(op.immediate)
 				operands.append(text)
 			source += ', '.join(operands)
 		else:
 			operands = []
-			for i in xrange(len(encoding.operands)):
+			for i in range(len(encoding.operands)):
 				op = self.get_operand(lineno, i, clabel, inline)
 				operands.append(op)
 			operands.reverse()
@@ -1152,7 +1152,7 @@ class CIntel2GAS (object):
 		self.error = self.synthesis.error
 		if retval != 0:
 			return retval
-		for i in xrange(self.synthesis.size):
+		for i in range(self.synthesis.size):
 			text = self.synthesis.synthesis(i, clabel, inline, align)
 			self.lines.append(text)
 			memo = self.synthesis.memos[i].strip('\r\n\t ')
@@ -1181,7 +1181,7 @@ class CIntel2GAS (object):
 		if inline:
 			self.output.append('__asm__ __volatile__ (')
 			prefix = '  '
-		for i in xrange(self.synthesis.size):
+		for i in range(self.synthesis.size):
 			line = self.lines[i]
 			if line.strip('\r\n\t ') == '':
 				if self.memos[i] == '' or memo == 0:
@@ -1195,7 +1195,7 @@ class CIntel2GAS (object):
 				if inline:
 					line = '"' + line + '\\n"'
 				if self.memos[i] and memo:
-					line = line.ljust(self.maxsize) + self.memos[i]
+					line = line.ljust(int(self.maxsize)) + self.memos[i]
 				self.output.append(prefix + line)
 		if inline:
 			self.output.append('  :' + self.synthesis.getvars(0))
@@ -1226,7 +1226,7 @@ def main ():
 		sys.stderr.write('error: ' + intel2gas.error + '\n')
 		return -1
 	for line in intel2gas.output:
-		print line
+		print (line)
 	return 0
 
 
@@ -1237,53 +1237,53 @@ if __name__ == '__main__':
 	def test1():
 		scanner = cscanner(open('intel2gas.asm'))
 		for token in scanner:
-			print token
-		print REGSIZE
+			print (token)
+		print (REGSIZE)
 	def test2():
-		print coperand('12')
-		print coperand('loop_pixel')
-		print coperand('eax')
-		print coperand('ebx')
-		print coperand('ax')
-		print coperand('al')
-		print coperand('[eax]')
-		print coperand('[eax + ebx]')
-		print coperand('[eax + 2*ebx]')
-		print coperand('[eax + 2*ebx + 1]')
-		print coperand('[eax + ebx + 3]')
-		print coperand('[eax + 1]')
-		print coperand('[eax*2]')
-		print coperand('[eax*2 + 1]')
-		print coperand('dword ptr [eax]')
-		print coperand('word ptr [eax+ebx+3]')
-		print coperand('byte ptr [es:eax+ebx*4+3]')
-		print coperand('byte ptr abc')
+		print (coperand('12'))
+		print (coperand('loop_pixel'))
+		print (coperand('eax'))
+		print (coperand('ebx'))
+		print (coperand('ax'))
+		print (coperand('al'))
+		print (coperand('[eax]'))
+		print (coperand('[eax + ebx]'))
+		print (coperand('[eax + 2*ebx]'))
+		print (coperand('[eax + 2*ebx + 1]'))
+		print (coperand('[eax + ebx + 3]'))
+		print (coperand('[eax + 1]'))
+		print (coperand('[eax*2]'))
+		print (coperand('[eax*2 + 1]'))
+		print (coperand('dword ptr [eax]'))
+		print (coperand('word ptr [eax+ebx+3]'))
+		print (coperand('byte ptr [es:eax+ebx*4+3]'))
+		print (coperand('byte ptr abc'))
 		return 0
 	def test3():
 		synth = csynth(open('intel2gas.asm'))
-		for i in xrange(len(synth.encoding)):
-			print '%d: '%(i + 1), synth.encoding[i]
-		print synth.labels
-		print synth.references
-		print synth.vars
-		print synth.variables
+		for i in range(len(synth.encoding)):
+			print ('%d: '%(i + 1), synth.encoding[i])
+		print (synth.labels)
+		print (synth.references)
+		print (synth.vars)
+		print (synth.variables)
 		return 0
 	def test4():
 		synth = csynthesis()
 		if synth.parse(open('intel2gas.asm')) != 0:
-			print 'error', synth.error
+			print ('error', synth.error)
 			return 0
-		for i in xrange(len(synth.encoding)):
-			print '%3d: '%(i + 1), synth.synthesis(i, 1, 1, 1)
-		print synth.getvars(0)
-		print synth.getvars(1)
-		print synth.indent1, synth.indent2
+		for i in range(len(synth.encoding)):
+			print ('%3d: '%(i + 1), synth.synthesis(i, 1, 1, 1))
+		print (synth.getvars(0))
+		print (synth.getvars(1))
+		print (synth.indent1, synth.indent2)
 	def test5():
 		intel2gas = CIntel2GAS()
 		if intel2gas.intel2gas(open('intel2gas.asm')):
 			return -1
 		for line in intel2gas.output:
-			print line
+			print (line)
 		return 0
 	#test5()
 	main()
