@@ -8,7 +8,7 @@
 # for more information, please see the readme file
 #
 #======================================================================
-from typing import Final
+from typing import Callable, Final
 import sys
 from io import StringIO
 
@@ -366,8 +366,10 @@ class cscanner (ctokenize):
 			token.row, token.col = row, col
 			return token
 
-		issym2f = lambda x: str: x.isalpha() or (x in ('_', '$', '@'))
-		issym2x = lambda x: x.isalnum() or (x in ('_', '$', '@'))
+		issym2f: Final[Callable[[str], bool]] = \
+			lambda x: x.isalpha() or (x in ('_', '$', '@'))
+		issym2x: Final[Callable[[str], bool]] = \
+			lambda x: x.isalnum() or (x in ('_', '$', '@'))
 
 		# identity or keyword
 		if issym2f(self.ch):
