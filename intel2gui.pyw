@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 #======================================================================
 #
@@ -10,7 +10,7 @@
 #======================================================================
 import intel2gas
 
-from tkinter import *
+from Tkinter import *
 
 
 class Intel2GUI (Frame):
