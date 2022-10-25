@@ -25,8 +25,10 @@ CTOKEN_INT: Final = 6
 CTOKEN_FLOAT: Final = 7
 CTOKEN_ERROR: Final = 8
 
-CTOKEN_NAME: Final = { 0:'endl', 1:'endf', 2:'ident', 3:'keyword', 4:'str',
-	5:'op', 6:'int', 7:'float', 8:'error' }
+CTOKEN_NAME: Final = {
+	0:'endl', 1:'endf', 2:'ident', 3:'keyword', 4:'str',
+	5:'op', 6:'int', 7:'float', 8:'error'
+}
 
 #----------------------------------------------------------------------
 # CTOKEN Declare
@@ -155,7 +157,7 @@ class ctokenize (object):
 #----------------------------------------------------------------------
 class cscanner (ctokenize):
 
-	def __init__ (self, fp = '', keywords: list[str] = [], casesensitive: bool = False):
+	def __init__ (self, fp = '', keywords: list[str] = [], casesensitive = False):
 		super(cscanner, self).__init__ (fp)
 		self.keywords = keywords
 		self.casesensitive = casesensitive
@@ -412,7 +414,7 @@ class cscanner (ctokenize):
 #----------------------------------------------------------------------
 # tokenize in single function
 #----------------------------------------------------------------------
-def tokenize(script):
+def tokenize(script: str):
 	scanner = cscanner(script)
 	result = [ n for n in scanner ]
 	scanner.reset()
@@ -844,7 +846,6 @@ class cencoding (object):
 		return instruction
 
 	def translate_operand (self, id, inline = 0):
-		desc = []
 		if self.instruction.lower() == 'align':
 			size = 4
 			if len(self.operands) > 0:
@@ -1232,31 +1233,36 @@ def main ():
 #----------------------------------------------------------------------
 # testing case
 #----------------------------------------------------------------------
-if __name__ == '__main__':
+def run_tests(i: None | int):
+	"""runs all tests by default, or 1 test if index is passed"""
 	def test1():
 		scanner = cscanner(open('intel2gas.asm'))
 		for token in scanner:
 			print (token)
 		print (REGSIZE)
 	def test2():
-		print (coperand('12'))
-		print (coperand('loop_pixel'))
-		print (coperand('eax'))
-		print (coperand('ebx'))
-		print (coperand('ax'))
-		print (coperand('al'))
-		print (coperand('[eax]'))
-		print (coperand('[eax + ebx]'))
-		print (coperand('[eax + 2*ebx]'))
-		print (coperand('[eax + 2*ebx + 1]'))
-		print (coperand('[eax + ebx + 3]'))
-		print (coperand('[eax + 1]'))
-		print (coperand('[eax*2]'))
-		print (coperand('[eax*2 + 1]'))
-		print (coperand('dword ptr [eax]'))
-		print (coperand('word ptr [eax+ebx+3]'))
-		print (coperand('byte ptr [es:eax+ebx*4+3]'))
-		print (coperand('byte ptr abc'))
+		ops: Final = (
+			'12',
+			'loop_pixel',
+			'eax',
+			'ebx',
+			'ax',
+			'al',
+			'[eax]',
+			'[eax + ebx]',
+			'[eax + 2*ebx]',
+			'[eax + 2*ebx + 1]',
+			'[eax + ebx + 3]',
+			'[eax + 1]',
+			'[eax*2]',
+			'[eax*2 + 1]',
+			'dword ptr [eax]',
+			'word ptr [eax+ebx+3]',
+			'byte ptr [es:eax+ebx*4+3]',
+			'byte ptr abc'
+		)
+		for o in ops:
+			print(coperand(o))
 		return 0
 	def test3():
 		synth = csynth(open('intel2gas.asm'))
@@ -1284,5 +1290,13 @@ if __name__ == '__main__':
 		for line in intel2gas.output:
 			print (line)
 		return 0
-	#test5()
+
+	ALL: Final = (test1, test2, test3, test4, test5)
+	if i is not None:
+		return ALL[i]()
+	for t in ALL:
+		t()
+
+if __name__ == '__main__':
+	#run_tests(5)
 	main()
