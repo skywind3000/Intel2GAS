@@ -1,38 +1,40 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 #======================================================================
-# 
+#
 # intel2gas.py - intel assembly to at&t format
 #
 # NOTE:
 # for more information, please see the readme file
 #
 #======================================================================
-import sys, time
-import os
+from typing import Callable, Final
+import sys
 from io import StringIO
 
 #----------------------------------------------------------------------
 # TOKEN TYPE
 #----------------------------------------------------------------------
-CTOKEN_ENDL = 0
-CTOKEN_ENDF = 1
-CTOKEN_IDENT = 2
-CTOKEN_KEYWORD = 3
-CTOKEN_STR = 4
-CTOKEN_OPERATOR = 5
-CTOKEN_INT = 6
-CTOKEN_FLOAT = 7
-CTOKEN_ERROR = 8
+CTOKEN_ENDL: Final = 0
+CTOKEN_ENDF: Final = 1
+CTOKEN_IDENT: Final = 2
+CTOKEN_KEYWORD: Final = 3
+CTOKEN_STR: Final = 4
+CTOKEN_OPERATOR: Final = 5
+CTOKEN_INT: Final = 6
+CTOKEN_FLOAT: Final = 7
+CTOKEN_ERROR: Final = 8
 
-CTOKEN_NAME = { 0:'endl', 1:'endf', 2:'ident', 3:'keyword', 4:'str',
-	5:'op', 6:'int', 7:'float', 8:'error' }
+CTOKEN_NAME: Final = {
+	0:'endl', 1:'endf', 2:'ident', 3:'keyword', 4:'str',
+	5:'op', 6:'int', 7:'float', 8:'error'
+}
 
 #----------------------------------------------------------------------
 # CTOKEN Declare
 #----------------------------------------------------------------------
 class ctoken (object):
-	def __init__ (self, mode = 0, value = 0, text = '', row = -1, col = -1):
+	def __init__ (self, mode: int = 0, value: float | str = 0, text: str = '', row: int = -1, col: int = -1):
 		self.mode = mode
 		self.value = value
 		self.text = text
@@ -66,7 +68,7 @@ class ctoken (object):
 		x = '(%s, %s)'%(CTOKEN_NAME[self.mode], repr(self.value))
 		return x
 
-
+spaces: Final = {' ', '\r', '\n', '\t'}
 
 #----------------------------------------------------------------------
 # CTOKENIZE Declare
@@ -106,7 +108,7 @@ class ctokenize (object):
 	def ungetch (self, ch):
 		self.un = ch
 	def isspace (self, ch):
-		return ch in (' ', '\r', '\n', '\t')
+		return ch in spaces
 	def isalpha (self, ch):
 		return ch.isalpha()
 	def isalnum (self, ch):
@@ -116,7 +118,7 @@ class ctokenize (object):
 		while 1:
 			if self.ch == '':
 				return -1
-			if not self.ch in (' ', '\r', '\n', '\t'):
+			if not self.ch in spaces:
 				break
 			if self.ch == '\n':
 				break
@@ -155,13 +157,13 @@ class ctokenize (object):
 #----------------------------------------------------------------------
 class cscanner (ctokenize):
 
-	def __init__ (self, fp = '', keywords = [], casesensitive = False):
+	def __init__ (self, fp = '', keywords: list[str] = [], casesensitive = False):
 		super(cscanner, self).__init__ (fp)
 		self.keywords = keywords
 		self.casesensitive = casesensitive
 		self.ch = ' '
 		self.memo = {}
-	
+
 	def skipmemo (self):
 		memo = ''
 		while 1:
@@ -190,16 +192,16 @@ class cscanner (ctokenize):
 			if skip == 0:
 				break
 		return memo
-	
+
 	def read_string (self):
 		token = None
 		self.error = ''
-		if not self.ch in ('\'', '\"'):
+		if self.ch not in ('\'', '\"'):
 			return None
 		mode = (self.ch == '\'') and 1 or 0
 		text = ''
 		done = -1
-		while 1:
+		while True: # in Py3, this is as fast as `while 1:``
 			ch = self.getch()
 			if ch == '\\':
 				self.getch()
@@ -207,7 +209,7 @@ class cscanner (ctokenize):
 			elif (mode == 0) and (ch == '\''):
 				text += '\''
 			elif (mode == 1) and (ch == '\"'):
-				text == '\"'
+				text = '\"'
 			elif (mode == 0) and (ch == '\"'):
 				ch = self.getch()
 				if ch == '\"':
@@ -241,7 +243,7 @@ class cscanner (ctokenize):
 		token.row = self.row
 		token.col = self.col
 		return token
-	
+
 	def read_number (self):
 		token = None
 		done = -1
@@ -275,7 +277,7 @@ class cscanner (ctokenize):
 		if text[:2] in ('0x', '0X'):
 			try: value = int(text, 16)
 			#Debug
-			except: 
+			except:
 				self.error = 'bad hex number ' + text
 				self.code = 2
 				return None
@@ -327,7 +329,7 @@ class cscanner (ctokenize):
 					self.code = 7
 					return None
 				token = ctoken(CTOKEN_FLOAT, value, text)
-	
+
 		token.row = self.row
 		token.col = self.col
 		return token
@@ -354,7 +356,7 @@ class cscanner (ctokenize):
 			if memo:
 				self.memo[self.row] = memo
 			return token
-		
+
 		# this is a string
 		if self.ch in ('\"', '\''):
 			row, col = self.row, self.col
@@ -365,9 +367,11 @@ class cscanner (ctokenize):
 				return None
 			token.row, token.col = row, col
 			return token
-		
-		issym2f = lambda x: x.isalpha() or (x in ('_', '$', '@'))
-		issym2x = lambda x: x.isalnum() or (x in ('_', '$', '@'))
+
+		issym2f: Final[Callable[[str], bool]] = \
+			lambda x: x.isalpha() or (x in ('_', '$', '@'))
+		issym2x: Final[Callable[[str], bool]] = \
+			lambda x: x.isalnum() or (x in ('_', '$', '@'))
 
 		# identity or keyword
 		if issym2f(self.ch):
@@ -377,12 +381,8 @@ class cscanner (ctokenize):
 				text += self.ch
 				self.getch()
 			if self.keywords:
-				for i in range(len(self.keywords)):
-					same = 0
-					if self.casesensitive:
-						same = (text == self.keywords[i])
-					else:
-						same = (text.lower() == self.keywords[i].lower())
+				for (i, v) in enumerate(self.keywords):
+					same = (text == v) if self.casesensitive else (text.lower() == v.lower())
 					if same:
 						token = ctoken(CTOKEN_KEYWORD, i, text)
 						token.row, token.col = row, col
@@ -390,8 +390,8 @@ class cscanner (ctokenize):
 			token = ctoken(CTOKEN_IDENT, text, text)
 			token.row, token.col = row, col
 			return token
-		
-		# this is a number
+
+		# check if `ch` is a number
 		if self.ch >= '0' and self.ch <= '9':
 			row, col = self.row, self.col
 			self.code = 0
@@ -401,7 +401,7 @@ class cscanner (ctokenize):
 				return None
 			token.row, token.col = row, col
 			return token
-		
+
 		# this is an operator
 		token = ctoken(CTOKEN_OPERATOR, self.ch, self.ch)
 		token.row, token.col = self.row, self.col
@@ -414,7 +414,7 @@ class cscanner (ctokenize):
 #----------------------------------------------------------------------
 # tokenize in single function
 #----------------------------------------------------------------------
-def tokenize(script):
+def tokenize(script: str):
 	scanner = cscanner(script)
 	result = [ n for n in scanner ]
 	scanner.reset()
@@ -425,17 +425,17 @@ def tokenize(script):
 #----------------------------------------------------------------------
 # X86 - ASSEMBLY
 #----------------------------------------------------------------------
-REGNAME = [ 'AH', 'AL', 'BH', 'BL', 'CH', 'CL', 'DH', 'DL', 'AX', 
-	'BX', 'CX', 'DX', 'EAX', 'EBX', 'ECX', 'EDX', 'RAX', 'RBX', 'RCX',    
-	'RDX', 'CR0', 'CR1', 'CR2', 'CR3', 'DR0', 'DR1', 'DR2', 'DR3', 
-	'DR4', 'DR5', 'DR6', 'DR7', 'SI', 'DI', 'SP', 'BP', 'ESI', 
-	'EDI', 'ESP', 'EBP', 'RSI', 'RDI', 'RSP', 'RBP', 'TR6', 'TR7', 
-	'ST0', 'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'MM0', 
-	'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7', 'MM8', 'MM9', 
-	'MM10', 'MM11', 'MM12', 'MM13', 'MM14', 'MM15', 'XMM0', 'XMM1', 
-	'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8', 'XMM9', 
-	'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'R0', 'R1', 
-	'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 
+REGNAME = [ 'AH', 'AL', 'BH', 'BL', 'CH', 'CL', 'DH', 'DL', 'AX',
+	'BX', 'CX', 'DX', 'EAX', 'EBX', 'ECX', 'EDX', 'RAX', 'RBX', 'RCX',
+	'RDX', 'CR0', 'CR1', 'CR2', 'CR3', 'DR0', 'DR1', 'DR2', 'DR3',
+	'DR4', 'DR5', 'DR6', 'DR7', 'SI', 'DI', 'SP', 'BP', 'ESI',
+	'EDI', 'ESP', 'EBP', 'RSI', 'RDI', 'RSP', 'RBP', 'TR6', 'TR7',
+	'ST0', 'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST7', 'MM0',
+	'MM1', 'MM2', 'MM3', 'MM4', 'MM5', 'MM6', 'MM7', 'MM8', 'MM9',
+	'MM10', 'MM11', 'MM12', 'MM13', 'MM14', 'MM15', 'XMM0', 'XMM1',
+	'XMM2', 'XMM3', 'XMM4', 'XMM5', 'XMM6', 'XMM7', 'XMM8', 'XMM9',
+	'XMM10', 'XMM11', 'XMM12', 'XMM13', 'XMM14', 'XMM15', 'R0', 'R1',
+	'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11',
 	'R12', 'R13', 'R14', 'R15' ]
 
 def reginfo(name):
@@ -476,7 +476,7 @@ regsize = lambda reg: REGSIZE[reg.upper()]
 isreg = lambda reg: (reg.upper() in REGSIZE)
 
 
-instreplace = {
+instreplace: Final = {
 	"cbw":"cbtw",
 	"cdq":"cltd",
 	"cmpsd":"cmpsl",
@@ -498,18 +498,18 @@ instreplace = {
 	"public":".globl",
 	"scasd":"scasl",
 	"stosd":"stosl",
-	}
+}
 
-prefix = [ 'lock', 'rep', 'repne', 'repnz', 'repe', 'repz' ]
+prefix: Final = [ 'lock', 'rep', 'repne', 'repnz', 'repe', 'repz' ]
 
 
 #----------------------------------------------------------------------
 # coperand
 #----------------------------------------------------------------------
-O_REG	= 0			# 寄存器
-O_IMM	= 1			# 立即数字
-O_MEM	= 2			# 内存
-O_LABEL	= 3			# 标识，可能是变量也可能是跳转地址
+O_REG: Final	= 0			# 寄存器
+O_IMM: Final	= 1			# 立即数字
+O_MEM: Final	= 2			# 内存
+O_LABEL: Final	= 3			# 标识，可能是变量也可能是跳转地址
 
 class coperand (object):
 	def __init__ (self, tokens = None):
@@ -523,7 +523,7 @@ class coperand (object):
 		self.immediate = 0					# 立即数字
 		self.label = ''						# 变量或者跳转地址
 		self.size = 0						# 数据大小
-		if tokens != None: 
+		if tokens != None:
 			self.parse(tokens)
 		self.name = 'operand'
 	def reset (self):
@@ -713,7 +713,7 @@ class cencoding (object):
 		if tokens != None:
 			self.parse(tokens)
 		self.name = 'cencoding'
-	
+
 	def reset (self):
 		self.label = ''
 		self.prefix = ''
@@ -754,7 +754,7 @@ class cencoding (object):
 			self.label = t1.value
 			self.tokens = self.tokens[2:]
 		return 0
-	
+
 	def __parse_prefix (self):
 		prefix = [ 'lock', 'rep', 'repne', 'repnz', 'repe', 'repz' ]
 		segments = [ 'cs', 'ss', 'ds', 'es', 'fs', 'gs' ]
@@ -769,7 +769,7 @@ class cencoding (object):
 			self.prefix = self.prefix.strip(' ')
 			self.tokens = self.tokens[1:]
 		return 0
-	
+
 	def __parse_instruction (self):
 		if len(self.tokens) < 1:
 			return 0
@@ -779,7 +779,7 @@ class cencoding (object):
 			raise SyntaxError('instruction type error')
 		self.instruction = t1.value
 		return 0
-	
+
 	def __parse_operands (self):
 		operands = []
 		while len(self.tokens) > 0:
@@ -797,11 +797,11 @@ class cencoding (object):
 			self.operands.append(n)
 		operands = None
 		return 0
-	
+
 	def __update (self):
 		self.size = 0
 		for operand in self.operands:
-			if operand.size > self.size:		
+			if operand.size > self.size:
 				self.size = operand.size
 		if self.prefix == '' and self.instruction == '':
 			if len(self.operands) == 0:
@@ -846,7 +846,6 @@ class cencoding (object):
 		return instruction
 
 	def translate_operand (self, id, inline = 0):
-		desc = []
 		if self.instruction.lower() == 'align':
 			size = 4
 			if len(self.operands) > 0:
@@ -877,13 +876,13 @@ class cencoding (object):
 # csynth
 #----------------------------------------------------------------------
 class csynthesis (object):
-	
+
 	def __init__ (self, source = None):
 		self.reset()
 		if source != None:
 			self.parse(source)
 		self.name = 'csynthesis'
-	
+
 	def reset (self):
 		self.source = ''
 		self.tokens = []
@@ -900,7 +899,7 @@ class csynthesis (object):
 		self.amd64 = False
 		self.size = 0
 		self.error = ''
-	
+
 	def parse (self, source = None):
 		self.reset()
 		if self.__tokenizer(source) != 0:
@@ -910,7 +909,7 @@ class csynthesis (object):
 		if self.__analyse() != 0:
 			return -3
 		return 0
-	
+
 	def __tokenizer (self, source = None):
 		scanner = cscanner(source)
 		tokens = []
@@ -945,7 +944,7 @@ class csynthesis (object):
 	def __encoding (self):
 		lineno = 1
 		for tokens in self.lines:
-			try: 
+			try:
 				encoding = cencoding(tokens)
 			except SyntaxError as e:
 				text = '%d: %s'%(lineno, e)
@@ -956,7 +955,7 @@ class csynthesis (object):
 		if len(self.lines) != len(self.encoding):
 			raise Exception('core fault')
 		return 0
-	
+
 	def __analyse (self):
 		self.size = len(self.lines)
 		index = 0
@@ -1018,7 +1017,7 @@ class csynthesis (object):
 		if self.indent1 < 4: self.indent1 = 4
 		if self.indent2 < 4: self.indent2 = 4
 		return 0
-	
+
 	def get_label (self, lineno, clabel = 0):
 		if lineno < 0 or lineno >= self.size:
 			raise KeyError('line number out of range')
@@ -1029,7 +1028,7 @@ class csynthesis (object):
 			return encoding.label + ':'
 		line, index = self.labels[encoding.label]
 		return '%d:'%index
-	
+
 	def get_instruction (self, lineno):
 		if lineno < 0 or lineno >= self.size:
 			raise KeyError('line number out of range')
@@ -1039,7 +1038,7 @@ class csynthesis (object):
 		source = encoding.prefix + ' ' + encoding.inst
 		source = source.strip(' ')
 		return source
-	
+
 	def get_operand (self, lineno, id, clabel = 0, inline = 0):
 		if lineno < 0 or lineno >= self.size:
 			raise KeyError('line number out of range')
@@ -1069,7 +1068,7 @@ class csynthesis (object):
 		source = self.get_label(lineno, clabel)
 		# 内容缩进
 		indent = self.indent1
-		if clabel: 
+		if clabel:
 			indent = len(self.labels) + 2
 		indent = int(((indent + 1) / 2) * 2)
 		source = source.ljust(indent)
@@ -1104,7 +1103,7 @@ class csynthesis (object):
 			source += ', '.join(operands)
 		source = source.rstrip(' ')
 		return source
-	
+
 	def getvars (self, mode = 0):
 		vars = []
 		for id, name, writable  in self.variables:
@@ -1125,7 +1124,7 @@ class csynthesis (object):
 # intel2gas
 #----------------------------------------------------------------------
 class CIntel2GAS (object):
-	
+
 	def __init__ (self):
 		self.synthesis = csynthesis()
 		self.config = {}
@@ -1137,7 +1136,7 @@ class CIntel2GAS (object):
 		self.lines = []
 		self.output = []
 		self.option()
-	
+
 	def option (self, align = 1, inline = 1, clabel = 1, memo = 1):
 		self.config['align'] = align
 		self.config['clabel'] = clabel
@@ -1234,31 +1233,36 @@ def main ():
 #----------------------------------------------------------------------
 # testing case
 #----------------------------------------------------------------------
-if __name__ == '__main__':
+def run_tests(i: None | int):
+	"""runs all tests by default, or 1 test if index is passed"""
 	def test1():
 		scanner = cscanner(open('intel2gas.asm'))
 		for token in scanner:
 			print (token)
 		print (REGSIZE)
 	def test2():
-		print (coperand('12'))
-		print (coperand('loop_pixel'))
-		print (coperand('eax'))
-		print (coperand('ebx'))
-		print (coperand('ax'))
-		print (coperand('al'))
-		print (coperand('[eax]'))
-		print (coperand('[eax + ebx]'))
-		print (coperand('[eax + 2*ebx]'))
-		print (coperand('[eax + 2*ebx + 1]'))
-		print (coperand('[eax + ebx + 3]'))
-		print (coperand('[eax + 1]'))
-		print (coperand('[eax*2]'))
-		print (coperand('[eax*2 + 1]'))
-		print (coperand('dword ptr [eax]'))
-		print (coperand('word ptr [eax+ebx+3]'))
-		print (coperand('byte ptr [es:eax+ebx*4+3]'))
-		print (coperand('byte ptr abc'))
+		ops: Final = (
+			'12',
+			'loop_pixel',
+			'eax',
+			'ebx',
+			'ax',
+			'al',
+			'[eax]',
+			'[eax + ebx]',
+			'[eax + 2*ebx]',
+			'[eax + 2*ebx + 1]',
+			'[eax + ebx + 3]',
+			'[eax + 1]',
+			'[eax*2]',
+			'[eax*2 + 1]',
+			'dword ptr [eax]',
+			'word ptr [eax+ebx+3]',
+			'byte ptr [es:eax+ebx*4+3]',
+			'byte ptr abc'
+		)
+		for o in ops:
+			print(coperand(o))
 		return 0
 	def test3():
 		synth = csynth(open('intel2gas.asm'))
@@ -1286,7 +1290,13 @@ if __name__ == '__main__':
 		for line in intel2gas.output:
 			print (line)
 		return 0
-	#test5()
+
+	ALL: Final = (test1, test2, test3, test4, test5)
+	if i is not None:
+		return ALL[i]()
+	for t in ALL:
+		t()
+
+if __name__ == '__main__':
+	#run_tests(5)
 	main()
-
-

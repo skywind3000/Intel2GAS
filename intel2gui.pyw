@@ -1,34 +1,33 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 #======================================================================
-# 
+#
 # intel2gas.py - intel assembly to at&t format
 #
 # NOTE:
 # for more information, please see the readme file
 #
 #======================================================================
-import sys, time
 import intel2gas
 
 from Tkinter import *
 
 
 class Intel2GUI (Frame):
-	
+
 	def __init__ (self, parent=None, text='Intel2GAS', file=None):
 		Frame.__init__(self, parent)
 		self.pack(expand=YES, fill=BOTH)                 # make me expandable
 		self.makewidgets()
 		self.intel2gas = intel2gas.CIntel2GAS()
-	
+
 	def settext (self, widget, text):
 		widget.delete('1.0', END)
 		widget.insert('1.0', text)
 		widget.mark_set(INSERT, '1.0')
-	
-	def gettext(self, widget): 
-		return widget.get('1.0', END+'-1c') 
+
+	def gettext(self, widget):
+		return widget.get('1.0', END+'-1c')
 
 	def makewidgets (self):
 		form = Frame(self, width=800, height=600)
@@ -45,12 +44,12 @@ class Intel2GUI (Frame):
 		sbar2 = Scrollbar(rite)
 		sbar3 = Scrollbar(left, orient='horizontal')
 		sbar4 = Scrollbar(rite, orient='horizontal')
-		text1.config(yscrollcommand=sbar1.set)  
+		text1.config(yscrollcommand=sbar1.set)
 		text2.config(yscrollcommand=sbar2.set)
 		text1.config(xscrollcommand=sbar3.set)
 		text2.config(xscrollcommand=sbar4.set)
-		sbar1.config(command=text1.yview) 
-		sbar2.config(command=text2.yview) 
+		sbar1.config(command=text1.yview)
+		sbar2.config(command=text2.yview)
 		sbar3.config(command=text1.xview)
 		sbar4.config(command=text2.xview)
 		sbar1.pack(side=RIGHT, fill=Y)
@@ -109,12 +108,12 @@ class Intel2GUI (Frame):
 			self.settext(self.text3, 'error: ' + self.intel2gas.error)
 			lineno = int(self.intel2gas.error.split(':')[0])
 			self.text1.tag_add(SEL, '%d.0'%lineno, '%d.0'%(lineno + 1))
-			self.text1.mark_set(INSERT, '%d.0'%lineno) 
+			self.text1.mark_set(INSERT, '%d.0'%lineno)
 			return -1
 		text = '\r\n'.join(self.intel2gas.output)
 		self.settext(self.text2, text)
 		return 0
-	
+
 	def clear (self):
 		self.settext(self.text1, '')
 		self.settext(self.text2, '')
@@ -133,7 +132,7 @@ def demo4():
 		form = Frame(root)                              # make outer frame
 		left = Frame(form)                              # make two columns
 		rite = Frame(form)
-		form.pack(fill=X) 
+		form.pack(fill=X)
 		left.pack(side=LEFT)
 		rite.pack(side=RIGHT, expand=YES, fill=X)       # grow horizontal
 
@@ -151,10 +150,10 @@ def demo4():
 
 	root = Tk()
 	vars = makeform(root, fields)
-	Button(root, text='Fetch', 
+	Button(root, text='Fetch',
 				 command=(lambda v=vars: fetch(v))).pack(side=LEFT)
 	#Quitter(root).pack(side=RIGHT)
-	root.bind('<Return>', (lambda event, v=vars: fetch(v)))   
+	root.bind('<Return>', (lambda event, v=vars: fetch(v)))
 	root.mainloop()
 	return 0
 
@@ -186,7 +185,7 @@ if __name__ == '__main__':
 		ent.pack(side=TOP, fill=X)                         # grow horiz
 		ent.focus()                                        # save a click
 		ent.bind('<Return>', (lambda event: fetch()))      # on enter key
-		btn = Button(root, text='Fetch', command=fetch)    # and on button 
+		btn = Button(root, text='Fetch', command=fetch)    # and on button
 		btn.pack(side=LEFT)
 		#Quitter(root).pack(side=RIGHT)
 		root.mainloop()
@@ -196,5 +195,3 @@ if __name__ == '__main__':
 		Intel2GUI(root)
 		root.mainloop()
 	demo5()
-
-
